@@ -9,9 +9,18 @@ import { HyperbolicEngine } from '@/engine/HyperbolicEngine';
 interface CanvasProps {
   tilingConfig: TilingConfig;
   onDebugUpdate: (info: Partial<DebugInfo>) => void;
+  onEngineReady?: (engine: HyperbolicEngine) => void;
+  debugMode?: boolean;
+  debugType?: number;
 }
 
-export default function Canvas({ tilingConfig, onDebugUpdate }: CanvasProps) {
+export default function Canvas({
+  tilingConfig,
+  onDebugUpdate,
+  onEngineReady,
+  debugMode = false,
+  debugType = 0,
+}: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<HyperbolicEngine | null>(null);
@@ -52,6 +61,9 @@ export default function Canvas({ tilingConfig, onDebugUpdate }: CanvasProps) {
 
     engineRef.current = engine;
 
+    // Notify parent that engine is ready
+    onEngineReady?.(engine);
+
     return () => {
       engine.dispose();
       engineRef.current = null;
@@ -64,6 +76,13 @@ export default function Canvas({ tilingConfig, onDebugUpdate }: CanvasProps) {
       engineRef.current.setTiling(tilingConfig);
     }
   }, [tilingConfig]);
+
+  // Update debug mode
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setDebugMode(debugMode, debugType);
+    }
+  }, [debugMode, debugType]);
 
   return (
     <div

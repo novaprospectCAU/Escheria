@@ -19,8 +19,13 @@ export class HyperbolicEngine {
   private frameCount: number = 0;
   private fpsUpdateTime: number = 0;
   private currentFps: number = 0;
+  private startTime: number = 0;
 
   private onDebugUpdate: ((info: Partial<DebugInfo>) => void) | null = null;
+
+  // Debug settings
+  private debugMode: boolean = false;
+  private debugType: number = 0;
 
   constructor(config: EngineConfig) {
     // Get canvas element
@@ -52,32 +57,15 @@ export class HyperbolicEngine {
       0.01,
       100
     );
+    // Position camera to look at the XY plane (where tiles are)
     this.threeCamera.position.z = 2;
+    this.threeCamera.lookAt(0, 0, 0);
 
     this.hyperbolicCamera = new HyperbolicCamera();
-
-    // Add basic lighting
-    this.setupLighting();
 
     // Handle resize
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
-  }
-
-  private setupLighting(): void {
-    // Ambient light
-    const ambient = new THREE.AmbientLight(0x404040, 0.5);
-    this.scene.add(ambient);
-
-    // Directional light
-    const directional = new THREE.DirectionalLight(0xffffff, 1.0);
-    directional.position.set(1, 2, 3);
-    this.scene.add(directional);
-
-    // Point light at origin (for hyperbolic effect)
-    const point = new THREE.PointLight(0xffffff, 0.5);
-    point.position.set(0, 0, 0);
-    this.scene.add(point);
   }
 
   private handleResize(): void {
@@ -104,6 +92,9 @@ export class HyperbolicEngine {
     // Create new tiling
     this.tiling = new HyperbolicTiling(config);
     this.scene.add(this.tiling.getGroup());
+
+    // Apply current debug settings
+    this.tiling.setDebugMode(this.debugMode, this.debugType);
   }
 
   /** Set debug callback */
@@ -116,12 +107,25 @@ export class HyperbolicEngine {
     return this.hyperbolicCamera;
   }
 
+  /** Set debug mode */
+  setDebugMode(enabled: boolean, type: number = 0): void {
+    this.debugMode = enabled;
+    this.debugType = type;
+    this.tiling?.setDebugMode(enabled, type);
+  }
+
+  /** Get tiling for external access (e.g., Poincaré debug) */
+  getTiling(): HyperbolicTiling | null {
+    return this.tiling;
+  }
+
   /** Start animation loop */
   start(): void {
     if (this.animationId !== null) return;
 
-    this.lastTime = performance.now();
-    this.fpsUpdateTime = this.lastTime;
+    this.startTime = performance.now();
+    this.lastTime = this.startTime;
+    this.fpsUpdateTime = this.startTime;
     this.frameCount = 0;
 
     const animate = (time: number) => {
@@ -142,18 +146,29 @@ export class HyperbolicEngine {
       // Update camera
       this.hyperbolicCamera.update(deltaTime);
 
-      // Update tiling based on camera position
-      if (this.tiling) {
-        this.tiling.update(this.hyperbolicCamera.getPosition());
-      }
-
-      // Update Three.js camera based on hyperbolic camera
+      // Get camera state
       const pos = this.hyperbolicCamera.getPosition();
       const rotation = this.hyperbolicCamera.getRotation();
 
-      // Simple mapping for now - will be replaced with proper projection
-      this.threeCamera.position.set(pos.x * 2, pos.y * 2, 2 - pos.z * 2);
-      this.threeCamera.rotation.set(rotation.pitch, rotation.yaw, 0, 'YXZ');
+      // Update tiling uniforms
+      if (this.tiling) {
+        // Update visibility based on camera position
+        this.tiling.update(pos);
+
+        // Update shader uniforms
+        this.tiling.updateUniforms({
+          cameraPosition: pos,
+          cameraRotation: rotation,
+          time: (time - this.startTime) / 1000,
+        });
+
+        // Apply yaw rotation to the tiling group (for 2D view rotation)
+        this.tiling.getGroup().rotation.z = -rotation.yaw;
+      }
+
+      // Update Three.js camera - fixed overhead view
+      this.threeCamera.position.set(0, 0, 2);
+      this.threeCamera.lookAt(0, 0, 0);
 
       // Render
       this.renderer.render(this.scene, this.threeCamera);

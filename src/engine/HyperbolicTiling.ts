@@ -7,6 +7,11 @@ import * as THREE from 'three';
 import type { Vec3, TilingConfig } from '@/types';
 import { Gyrovector } from '@/core/gyrovector';
 import { getTilingCircumradius, getPolygonVertices } from '@/core/hyperbolic';
+import {
+  createHyperbolicMaterial,
+  updateHyperbolicMaterial,
+  type HyperbolicMaterialUniforms,
+} from './HyperbolicMaterial';
 
 interface TileData {
   id: string;
@@ -16,22 +21,32 @@ interface TileData {
   depth: number;
 }
 
+export interface TilingUniformUpdates {
+  cameraPosition?: Vec3;
+  cameraRotation?: { yaw: number; pitch: number };
+  time?: number;
+  debugMode?: boolean;
+  debugType?: number;
+}
+
 export class HyperbolicTiling {
   private config: TilingConfig;
   private group: THREE.Group;
   private tiles: Map<string, TileData> = new Map();
   private baseTileGeometry: THREE.BufferGeometry | null = null;
-  private tileMaterial: THREE.Material;
+  private sharedMaterial: THREE.ShaderMaterial;
+
+  // Debug settings (tracked for getter access)
+  private _debugMode: boolean = false;
+  private _debugType: number = 0;
 
   constructor(config: TilingConfig) {
     this.config = config;
     this.group = new THREE.Group();
 
-    // Create tile material
-    this.tileMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4488ff,
-      side: THREE.DoubleSide,
-      flatShading: true,
+    // Create shared hyperbolic material
+    this.sharedMaterial = createHyperbolicMaterial({
+      baseColor: 0x4488ff,
     });
 
     // Generate initial tiles
@@ -74,7 +89,7 @@ export class HyperbolicTiling {
       positions.push(v1.x, v1.y, v1.z);
       positions.push(v2.x, v2.y, v2.z);
 
-      // Normals (pointing up for now)
+      // Normals (pointing up in z direction)
       for (let j = 0; j < 3; j++) {
         normals.push(0, 0, 1);
       }
@@ -109,24 +124,21 @@ export class HyperbolicTiling {
   private createTile(id: string, center: Gyrovector, rotation: number, depth: number): void {
     if (this.tiles.has(id) || !this.baseTileGeometry) return;
 
-    // Create mesh
-    const mesh = new THREE.Mesh(
-      this.baseTileGeometry,
-      this.tileMaterial.clone()
-    );
+    // Clone material for per-tile color variation
+    const material = this.sharedMaterial.clone();
 
-    // Color based on depth
+    // Set color based on depth using HSL
     const hue = (depth * 0.15) % 1;
-    (mesh.material as THREE.MeshStandardMaterial).color.setHSL(hue, 0.7, 0.5);
+    const color = new THREE.Color();
+    color.setHSL(hue, 0.7, 0.5);
+    material.uniforms.uBaseColor.value = color;
 
-    // Position and rotate
+    // Create mesh
+    const mesh = new THREE.Mesh(this.baseTileGeometry, material);
+
+    // Position the tile in world space (Poincaré coordinates)
     mesh.position.set(center.x, center.y, center.z);
     mesh.rotation.z = rotation;
-
-    // Scale based on distance from origin (for visual effect)
-    const dist = center.norm();
-    const scale = 1 - dist * 0.3;
-    mesh.scale.setScalar(Math.max(scale, 0.1));
 
     this.group.add(mesh);
 
@@ -190,23 +202,77 @@ export class HyperbolicTiling {
     }
   }
 
+  /** Update uniforms for all tiles */
+  updateUniforms(updates: TilingUniformUpdates): void {
+    const uniformUpdates: Partial<HyperbolicMaterialUniforms> = {};
+
+    if (updates.cameraPosition) {
+      uniformUpdates.cameraPosition = new THREE.Vector3(
+        updates.cameraPosition.x,
+        updates.cameraPosition.y,
+        updates.cameraPosition.z
+      );
+    }
+
+    if (updates.cameraRotation) {
+      uniformUpdates.cameraRotation = new THREE.Vector2(
+        updates.cameraRotation.yaw,
+        updates.cameraRotation.pitch
+      );
+    }
+
+    if (updates.time !== undefined) {
+      uniformUpdates.time = updates.time;
+    }
+
+    if (updates.debugMode !== undefined) {
+      this._debugMode = updates.debugMode;
+      uniformUpdates.debugMode = updates.debugMode;
+    }
+
+    if (updates.debugType !== undefined) {
+      this._debugType = updates.debugType;
+      uniformUpdates.debugType = updates.debugType;
+    }
+
+    // Update all tile materials
+    for (const tile of this.tiles.values()) {
+      const material = tile.mesh.material as THREE.ShaderMaterial;
+      updateHyperbolicMaterial(material, uniformUpdates);
+    }
+  }
+
+  /** Set debug mode */
+  setDebugMode(enabled: boolean, type: number = 0): void {
+    this._debugMode = enabled;
+    this._debugType = type;
+    this.updateUniforms({ debugMode: enabled, debugType: type });
+  }
+
+  /** Get current debug mode state */
+  getDebugMode(): boolean {
+    return this._debugMode;
+  }
+
+  /** Get current debug type */
+  getDebugType(): number {
+    return this._debugType;
+  }
+
   /** Update tiling based on camera position */
   update(cameraPosition: Vec3): void {
     const camGyro = Gyrovector.fromVec3(cameraPosition);
 
-    // Update each tile's position relative to camera
     for (const tile of this.tiles.values()) {
+      // Calculate relative position using Möbius subtraction (hyperbolic translation)
       const relativePos = camGyro.negate().mobiusAdd(tile.center);
 
+      // Update mesh position
       tile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
 
-      // Scale based on distance
-      const dist = relativePos.norm();
-      const scale = 1 - dist * 0.3;
-      tile.mesh.scale.setScalar(Math.max(scale, 0.05));
-
-      // Hide if too far (for performance)
-      tile.mesh.visible = dist < 0.98;
+      // Calculate hyperbolic distance for visibility culling
+      const dist = camGyro.hyperbolicDistance(tile.center);
+      tile.mesh.visible = dist < 6.0;
     }
   }
 
@@ -217,6 +283,19 @@ export class HyperbolicTiling {
       if (tile.mesh.visible) count++;
     }
     return count;
+  }
+
+  /** Get all tile positions (for debug overlay) */
+  getTilePositions(): Vec3[] {
+    const positions: Vec3[] = [];
+    for (const tile of this.tiles.values()) {
+      positions.push({
+        x: tile.center.x,
+        y: tile.center.y,
+        z: tile.center.z,
+      });
+    }
+    return positions;
   }
 
   /** Dispose all resources */
@@ -234,6 +313,6 @@ export class HyperbolicTiling {
     if (this.baseTileGeometry) {
       this.baseTileGeometry.dispose();
     }
-    this.tileMaterial.dispose();
+    this.sharedMaterial.dispose();
   }
 }

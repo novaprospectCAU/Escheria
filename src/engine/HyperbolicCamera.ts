@@ -129,48 +129,41 @@ export class HyperbolicCamera {
 
   /** Update camera position based on input */
   update(deltaTime: number): void {
-    // Calculate movement direction in camera space
+    // For 2D top-down view: X is left/right, Y is forward/back
     let dx = 0;
     let dy = 0;
-    let dz = 0;
 
-    if (this.moveForward) dz -= 1;
-    if (this.moveBackward) dz += 1;
+    // W/S for Y axis (up/down on screen = forward/back)
+    if (this.moveForward) dy += 1;
+    if (this.moveBackward) dy -= 1;
+    // A/D for X axis (left/right)
     if (this.moveLeft) dx -= 1;
     if (this.moveRight) dx += 1;
-    if (this.moveUp) dy += 1;
-    if (this.moveDown) dy -= 1;
 
     // Only move if there's input
-    if (dx !== 0 || dy !== 0 || dz !== 0) {
+    if (dx !== 0 || dy !== 0) {
       // Normalize
-      const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const len = Math.sqrt(dx * dx + dy * dy);
       dx /= len;
       dy /= len;
-      dz /= len;
 
-      // Transform direction by camera rotation
+      // Apply yaw rotation (rotation around Z axis for 2D view)
       const cy = Math.cos(this.yaw);
       const sy = Math.sin(this.yaw);
-      const cp = Math.cos(this.pitch);
-      const sp = Math.sin(this.pitch);
+      const worldDx = dx * cy - dy * sy;
+      const worldDy = dx * sy + dy * cy;
 
-      // Apply yaw rotation
-      const worldDx = dx * cy + dz * sy;
-      const worldDz = -dx * sy + dz * cy;
-
-      // Apply pitch rotation (only to forward/back)
-      const worldDy = dy + worldDz * sp;
-      const finalDz = worldDz * cp;
-
-      // Create movement vector in hyperbolic space
+      // Create movement vector in hyperbolic space (2D, z=0)
       const moveDistance = this.moveSpeed * deltaTime;
-      const moveDirection = new Gyrovector(worldDx, worldDy, finalDz);
-      const normalizedDir = moveDirection.scale(1 / moveDirection.norm());
-      const scaledMove = normalizedDir.mobiusScale(moveDistance);
+      const moveDirection = new Gyrovector(worldDx, worldDy, 0);
+      const norm = moveDirection.norm();
+      if (norm > 0.001) {
+        const normalizedDir = moveDirection.scale(1 / norm);
+        const scaledMove = normalizedDir.mobiusScale(moveDistance);
 
-      // Apply hyperbolic movement (Möbius addition)
-      this.position = this.position.mobiusAdd(scaledMove);
+        // Apply hyperbolic movement (Möbius addition)
+        this.position = this.position.mobiusAdd(scaledMove);
+      }
     }
   }
 

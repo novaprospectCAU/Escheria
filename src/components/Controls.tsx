@@ -9,6 +9,12 @@ interface ControlsProps {
   onTilingChange: (config: TilingConfig) => void;
   showDebug: boolean;
   onToggleDebug: () => void;
+  debugMode?: boolean;
+  onToggleDebugMode?: () => void;
+  debugType?: number;
+  onDebugTypeChange?: (type: number) => void;
+  showPoincare?: boolean;
+  onTogglePoincare?: () => void;
 }
 
 // Predefined tiling options
@@ -21,11 +27,24 @@ const TILING_PRESETS: { label: string; p: number; q: number }[] = [
   { label: '{3,7} Triangle', p: 3, q: 7 },
 ];
 
+// Debug visualization types
+const DEBUG_TYPES = [
+  { value: 0, label: 'Distance' },
+  { value: 1, label: 'Normals' },
+  { value: 2, label: 'UV' },
+];
+
 export default function Controls({
   tilingConfig,
   onTilingChange,
   showDebug,
   onToggleDebug,
+  debugMode = false,
+  onToggleDebugMode,
+  debugType = 0,
+  onDebugTypeChange,
+  showPoincare = true,
+  onTogglePoincare,
 }: ControlsProps) {
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const preset = TILING_PRESETS[parseInt(e.target.value)];
@@ -44,6 +63,10 @@ export default function Controls({
       ...tilingConfig,
       maxDepth: Math.max(1, Math.min(8, depth)),
     });
+  };
+
+  const handleDebugTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onDebugTypeChange?.(parseInt(e.target.value));
   };
 
   const currentPresetIndex = TILING_PRESETS.findIndex(
@@ -123,6 +146,73 @@ export default function Controls({
           Show Debug Info
         </label>
       </div>
+
+      {onTogglePoincare && (
+        <div style={{ marginBottom: '12px' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={showPoincare}
+              onChange={onTogglePoincare}
+              style={{ marginRight: '8px' }}
+            />
+            Show Poincaré Disk
+          </label>
+        </div>
+      )}
+
+      {onToggleDebugMode && (
+        <div style={{ marginBottom: '12px' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={debugMode}
+              onChange={onToggleDebugMode}
+              style={{ marginRight: '8px' }}
+            />
+            Shader Debug Mode
+          </label>
+        </div>
+      )}
+
+      {debugMode && onDebugTypeChange && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>
+            Debug Visualization
+          </label>
+          <select
+            value={debugType}
+            onChange={handleDebugTypeChange}
+            style={{
+              width: '100%',
+              padding: '6px',
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #555',
+              borderRadius: '4px',
+              fontFamily: 'monospace',
+            }}
+          >
+            {DEBUG_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div
         style={{
