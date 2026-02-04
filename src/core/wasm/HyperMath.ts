@@ -68,7 +68,12 @@ export class HyperMath {
       try {
         const wasmModule = await import(/* @vite-ignore */ blobUrl);
         const createModule = wasmModule.default;
-        this.module = await createModule();
+
+        // Provide locateFile to help Emscripten find the .wasm file
+        this.module = await createModule({
+          locateFile: (path: string) => `/wasm/${path}`,
+        });
+
         this.useWasm = true;
         console.log('WASM module loaded:', this.module!.getVersion());
         return true;
