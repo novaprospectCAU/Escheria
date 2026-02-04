@@ -4,6 +4,7 @@
 #include "matrix.hpp"
 #include <cmath>
 #include <array>
+#include <vector>
 
 namespace hypermath {
 

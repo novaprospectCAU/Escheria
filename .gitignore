@@ -3,9 +3,11 @@ node_modules/
 
 # Build outputs
 dist/
+dist-node/
 wasm/build/
-public/wasm/*.js
-public/wasm/*.wasm
+
+# Emscripten SDK (installed locally)
+emsdk/
 
 # IDE
 .vscode/

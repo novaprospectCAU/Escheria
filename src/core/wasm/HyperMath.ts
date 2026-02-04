@@ -53,15 +53,30 @@ export class HyperMath {
 
   private static async loadModule(): Promise<boolean> {
     try {
-      // Dynamic import of WASM module
-      // Use variable path to prevent Vite static analysis
-      const wasmPath = '/wasm/hypermath.js';
-      const createModule = await (Function('p', 'return import(p)')(wasmPath));
-      this.module = await createModule.default();
-      this.useWasm = true;
-      return true;
-    } catch {
-      console.warn('WASM module not available, using JavaScript fallback');
+      // Fetch and execute the WASM loader module
+      const response = await fetch('/wasm/hypermath.js');
+      if (!response.ok) {
+        throw new Error('Failed to fetch WASM module');
+      }
+
+      const moduleText = await response.text();
+
+      // Create a blob URL and import as ES module
+      const blob = new Blob([moduleText], { type: 'application/javascript' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      try {
+        const wasmModule = await import(/* @vite-ignore */ blobUrl);
+        const createModule = wasmModule.default;
+        this.module = await createModule();
+        this.useWasm = true;
+        console.log('WASM module loaded:', this.module!.getVersion());
+        return true;
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch (e) {
+      console.warn('WASM module not available, using JavaScript fallback:', e);
       this.useWasm = false;
       return false;
     }
