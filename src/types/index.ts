@@ -65,5 +65,6 @@ export interface DebugInfo {
   position: GyrovectorData;
   hyperbolicDistance: number;
   visibleTiles: number;
+  totalTiles?: number; // Total tiles in memory (for dynamic loading)
   wasmLoaded: boolean;
 }

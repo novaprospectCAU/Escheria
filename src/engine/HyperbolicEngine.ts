@@ -152,8 +152,8 @@ export class HyperbolicEngine {
 
       // Update tiling uniforms
       if (this.tiling) {
-        // Update visibility based on camera position
-        this.tiling.update(pos);
+        // Dynamic tile loading - replaces static update
+        this.tiling.updateDynamic(pos);
 
         // Update shader uniforms
         this.tiling.updateUniforms({
@@ -180,6 +180,7 @@ export class HyperbolicEngine {
           position: pos,
           hyperbolicDistance: this.hyperbolicCamera.getDistanceFromOrigin(),
           visibleTiles: this.tiling?.getVisibleTileCount() ?? 0,
+          totalTiles: this.tiling?.getTotalTileCount() ?? 0,
         });
       }
     };

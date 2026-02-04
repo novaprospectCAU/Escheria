@@ -21,8 +21,7 @@ export class HyperbolicCamera {
   private moveBackward: boolean = false;
   private moveLeft: boolean = false;
   private moveRight: boolean = false;
-  private moveUp: boolean = false;
-  private moveDown: boolean = false;
+  // Note: moveUp/moveDown will be added when implementing 3D movement
 
   // Movement speed (hyperbolic distance per second)
   private moveSpeed: number = 0.5;
@@ -70,13 +69,7 @@ export class HyperbolicCamera {
       case 'ArrowRight':
         this.moveRight = true;
         break;
-      case 'Space':
-        this.moveUp = true;
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.moveDown = true;
-        break;
+      // Space and Shift reserved for future 3D movement
     }
   }
 
@@ -98,13 +91,7 @@ export class HyperbolicCamera {
       case 'ArrowRight':
         this.moveRight = false;
         break;
-      case 'Space':
-        this.moveUp = false;
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        this.moveDown = false;
-        break;
+      // Space and Shift reserved for future 3D movement
     }
   }
 

@@ -66,8 +66,11 @@ export default function DebugOverlay({ info }: DebugOverlayProps) {
           {formatNumber(info.hyperbolicDistance)}
         </div>
         <div>
-          <span style={{ color: '#888' }}>Visible Tiles:</span>{' '}
+          <span style={{ color: '#888' }}>Tiles:</span>{' '}
           {info.visibleTiles}
+          {info.totalTiles !== undefined && (
+            <span style={{ color: '#666' }}> / {info.totalTiles}</span>
+          )}
         </div>
       </div>
 
