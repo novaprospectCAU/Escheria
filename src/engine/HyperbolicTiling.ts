@@ -59,6 +59,7 @@ class TilePool {
       this.pool.push(mesh);
     } else {
       (mesh.material as THREE.Material).dispose();
+      mesh.geometry = null!;
     }
   }
 

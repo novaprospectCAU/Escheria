@@ -22,6 +22,7 @@ export class HyperbolicEngine {
   private startTime: number = 0;
 
   private onDebugUpdate: ((info: Partial<DebugInfo>) => void) | null = null;
+  private resizeHandler = () => this.handleResize();
 
   // Debug settings
   private debugMode: boolean = false;
@@ -52,7 +53,7 @@ export class HyperbolicEngine {
     // Initialize cameras
     const aspect = canvas.clientWidth / canvas.clientHeight;
     this.threeCamera = new THREE.PerspectiveCamera(
-      (config.fov ?? 75) * (180 / Math.PI),
+      config.fov ? config.fov * (180 / Math.PI) : 75,
       aspect,
       0.01,
       100
@@ -65,7 +66,7 @@ export class HyperbolicEngine {
 
     // Handle resize
     this.handleResize();
-    window.addEventListener('resize', () => this.handleResize());
+    window.addEventListener('resize', this.resizeHandler);
   }
 
   private handleResize(): void {
@@ -205,6 +206,6 @@ export class HyperbolicEngine {
     }
 
     this.renderer.dispose();
-    window.removeEventListener('resize', () => this.handleResize());
+    window.removeEventListener('resize', this.resizeHandler);
   }
 }
