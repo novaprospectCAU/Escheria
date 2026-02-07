@@ -439,7 +439,14 @@ export class HyperbolicTiling {
           const distFromOrigin = neighbor.center.norm();
           const depth = Math.floor(distFromOrigin * 10) + 1;
 
-          this.createTileAt(neighbor.center, neighbor.rotation, depth);
+          const newTile = this.createTileAt(neighbor.center, neighbor.rotation, depth);
+          if (newTile) {
+            // Immediately set camera-relative position so the tile doesn't
+            // render at absolute coordinates for 1 frame (flicker fix)
+            const relativePos = cameraPos.negate().mobiusAdd(newTile.center);
+            newTile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+            newTile.mesh.visible = relativePos.norm() < 0.95;
+          }
           this.tilesCreatedThisFrame++;
         }
       }
@@ -506,8 +513,13 @@ export class HyperbolicTiling {
 
       // Use Euclidean distance of relative position for visibility
       // This is what actually matters for rendering (screen space)
+      // Hysteresis: separate on/off thresholds to prevent toggling at boundary
       const euclideanDist = relativePos.norm();
-      tile.mesh.visible = euclideanDist < 0.95; // Stay within Poincaré disk
+      if (tile.mesh.visible) {
+        tile.mesh.visible = euclideanDist < 0.97; // visible → must go further to hide
+      } else {
+        tile.mesh.visible = euclideanDist < 0.93; // hidden → must come closer to show
+      }
 
       // Update access time for visible tiles
       if (tile.mesh.visible) {
