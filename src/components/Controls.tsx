@@ -117,7 +117,7 @@ export default function Controls({
 
       <div style={{ marginBottom: '12px' }}>
         <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>
-          Tiling Depth: {tilingConfig.maxDepth}
+          Tile Density: {tilingConfig.maxDepth}
         </label>
         <input
           type="range"

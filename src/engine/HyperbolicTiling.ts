@@ -114,6 +114,9 @@ export class HyperbolicTiling {
   private circumradius: number = 0;
   private moveDistance: number = 0;
 
+  // Mapping: maxDepth → maxTileCount
+  private static readonly DEPTH_TO_TILE_COUNT = [0, 100, 200, 300, 500, 700, 1000];
+
   constructor(config: TilingConfig) {
     this.config = config;
     this.group = new THREE.Group();
@@ -122,6 +125,10 @@ export class HyperbolicTiling {
     const { p, q } = this.config;
     this.circumradius = getTilingCircumradius(p, q);
     this.moveDistance = this.circumradius * 2 * Math.tanh(this.circumradius / 2);
+
+    // Map maxDepth to dynamic tile count
+    this.dynamicConfig.maxTileCount =
+      HyperbolicTiling.DEPTH_TO_TILE_COUNT[config.maxDepth] ?? 500;
 
     // Create shared hyperbolic material
     this.sharedMaterial = createHyperbolicMaterial({
@@ -587,6 +594,11 @@ export class HyperbolicTiling {
       const material = tile.mesh.material as THREE.ShaderMaterial;
       updateHyperbolicMaterial(material, uniformUpdates);
     }
+  }
+
+  /** Set the maximum tile count for dynamic tiling */
+  setMaxTileCount(count: number): void {
+    this.dynamicConfig.maxTileCount = count;
   }
 
   /** Set debug mode */
