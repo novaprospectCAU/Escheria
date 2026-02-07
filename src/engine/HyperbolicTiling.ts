@@ -445,6 +445,8 @@ export class HyperbolicTiling {
             // render at absolute coordinates for 1 frame (flicker fix)
             const relativePos = cameraPos.negate().mobiusAdd(newTile.center);
             newTile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+            const scale = 1 - relativePos.normSquared();
+            newTile.mesh.scale.setScalar(scale);
             newTile.mesh.visible = relativePos.norm() < 0.95;
           }
           this.tilesCreatedThisFrame++;
@@ -510,6 +512,10 @@ export class HyperbolicTiling {
     for (const tile of this.tiles.values()) {
       const relativePos = camGyro.negate().mobiusAdd(tile.center);
       tile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+
+      // Conformal scale factor: tiles near disk boundary shrink
+      const scale = 1 - relativePos.normSquared();
+      tile.mesh.scale.setScalar(scale);
 
       // Use Euclidean distance of relative position for visibility
       // This is what actually matters for rendering (screen space)
@@ -610,6 +616,10 @@ export class HyperbolicTiling {
 
       // Update mesh position
       tile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+
+      // Conformal scale factor: tiles near disk boundary shrink
+      const scale = 1 - relativePos.normSquared();
+      tile.mesh.scale.setScalar(scale);
 
       // Calculate hyperbolic distance for visibility culling
       const dist = camGyro.hyperbolicDistance(tile.center);
