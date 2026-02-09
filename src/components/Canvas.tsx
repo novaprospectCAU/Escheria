@@ -16,6 +16,7 @@ interface CanvasProps {
   debugType?: number;
   isMobile?: boolean;
   firstPerson?: boolean;
+  surfaceMode?: 'flat' | 'hyperbolic';
 }
 
 export default function Canvas({
@@ -26,6 +27,7 @@ export default function Canvas({
   debugType = 0,
   isMobile = false,
   firstPerson = true,
+  surfaceMode = 'flat',
 }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -102,6 +104,13 @@ export default function Canvas({
       engineRef.current.setFirstPerson(firstPerson);
     }
   }, [firstPerson]);
+
+  // Update surface curvature mode
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setSurfaceMode(surfaceMode);
+    }
+  }, [surfaceMode]);
 
   return (
     <div

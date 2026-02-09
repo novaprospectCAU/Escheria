@@ -31,6 +31,7 @@ function App() {
   const [tilePositions, setTilePositions] = useState<Vec3[]>([]);
   const [engine, setEngine] = useState<HyperbolicEngine | null>(null);
   const [firstPerson, setFirstPerson] = useState(true);
+  const [surfaceMode, setSurfaceMode] = useState<'flat' | 'hyperbolic'>('flat');
 
   useEffect(() => {
     // Initialize WASM module
@@ -97,6 +98,7 @@ function App() {
         debugType={debugType}
         isMobile={mobile}
         firstPerson={firstPerson}
+        surfaceMode={surfaceMode}
       />
       <Controls
         tilingConfig={tilingConfig}
@@ -111,6 +113,8 @@ function App() {
         onTogglePoincare={() => setShowPoincare(!showPoincare)}
         firstPerson={firstPerson}
         onToggleFirstPerson={handleToggleFirstPerson}
+        surfaceMode={surfaceMode}
+        onSurfaceModeChange={setSurfaceMode}
         isMobile={mobile}
       />
       {showDebug && <DebugOverlay info={debugInfo} />}

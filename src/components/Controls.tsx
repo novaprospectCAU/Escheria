@@ -18,6 +18,8 @@ interface ControlsProps {
   onTogglePoincare?: () => void;
   firstPerson?: boolean;
   onToggleFirstPerson?: () => void;
+  surfaceMode?: 'flat' | 'hyperbolic';
+  onSurfaceModeChange?: (mode: 'flat' | 'hyperbolic') => void;
   isMobile?: boolean;
 }
 
@@ -51,6 +53,8 @@ export default function Controls({
   onTogglePoincare,
   firstPerson = true,
   onToggleFirstPerson,
+  surfaceMode = 'flat',
+  onSurfaceModeChange,
   isMobile = false,
 }: ControlsProps) {
   const [collapsed, setCollapsed] = useState(isMobile);
@@ -142,6 +146,30 @@ export default function Controls({
             />
             First Person View
           </label>
+        </div>
+      )}
+
+      {firstPerson && onSurfaceModeChange && (
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>
+            Surface Mode
+          </label>
+          <select
+            value={surfaceMode}
+            onChange={(e) => onSurfaceModeChange(e.target.value as 'flat' | 'hyperbolic')}
+            style={{
+              width: '100%',
+              padding: '6px',
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #555',
+              borderRadius: '4px',
+              fontFamily: 'monospace',
+            }}
+          >
+            <option value="flat">Flat</option>
+            <option value="hyperbolic">Hyperbolic</option>
+          </select>
         </div>
       )}
 

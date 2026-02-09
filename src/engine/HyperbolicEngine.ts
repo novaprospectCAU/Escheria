@@ -124,6 +124,11 @@ export class HyperbolicEngine {
     this.firstPerson = enabled;
   }
 
+  /** Set surface curvature mode */
+  setSurfaceMode(mode: 'flat' | 'hyperbolic'): void {
+    this.tiling?.setSurfaceMode(mode);
+  }
+
   /** Check if first-person view is active */
   isFirstPerson(): boolean {
     return this.firstPerson;

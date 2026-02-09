@@ -115,6 +115,14 @@ export class HyperbolicTiling {
   private moveDistance: number = 0;
   private visibleRadius: number = 0.83;
 
+  // Surface curvature mode
+  private surfaceMode: 'flat' | 'hyperbolic' = 'flat';
+  private static readonly CURVATURE_SCALE = 0.04;
+
+  // Reusable math objects (GC prevention)
+  private static readonly _tempAxis = new THREE.Vector3();
+  private static readonly _tempQuat = new THREE.Quaternion();
+
   // Prism height for 3D tile extrusion
   private static readonly WALL_HEIGHT = 0.06;
 
@@ -494,7 +502,27 @@ export class HyperbolicTiling {
             // Immediately set camera-relative position so the tile doesn't
             // render at absolute coordinates for 1 frame (flicker fix)
             const relativePos = cameraPos.negate().mobiusAdd(newTile.center);
-            newTile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+
+            if (this.surfaceMode === 'hyperbolic') {
+              const r2 = relativePos.x ** 2 + relativePos.y ** 2;
+              const K = HyperbolicTiling.CURVATURE_SCALE;
+              const zOffset = K * 2 * r2 / (1 - r2);
+              newTile.mesh.position.set(relativePos.x, relativePos.y, zOffset);
+
+              const denom2 = (1 - r2) * (1 - r2);
+              const gradMag = K * 4 * Math.sqrt(r2) / denom2;
+              const tiltAngle = Math.atan(gradMag);
+              const r = Math.sqrt(r2);
+              if (r > 0.001) {
+                HyperbolicTiling._tempAxis.set(relativePos.y / r, -relativePos.x / r, 0);
+                HyperbolicTiling._tempQuat.setFromAxisAngle(HyperbolicTiling._tempAxis, tiltAngle);
+                newTile.mesh.quaternion.copy(HyperbolicTiling._tempQuat);
+                newTile.mesh.rotateZ(newTile.rotation);
+              }
+            } else {
+              newTile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+            }
+
             const scale = 1 - relativePos.normSquared();
             newTile.mesh.scale.setScalar(scale);
             newTile.mesh.visible = relativePos.norm() < 0.95;
@@ -559,9 +587,34 @@ export class HyperbolicTiling {
     const now = performance.now();
 
     // Update tile positions relative to camera and track access time
+    const isHyperbolic = this.surfaceMode === 'hyperbolic';
+    const K = HyperbolicTiling.CURVATURE_SCALE;
+
     for (const tile of this.tiles.values()) {
       const relativePos = camGyro.negate().mobiusAdd(tile.center);
-      tile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+
+      if (isHyperbolic) {
+        const r2 = relativePos.x ** 2 + relativePos.y ** 2;
+        const zOffset = K * 2 * r2 / (1 - r2);
+        tile.mesh.position.set(relativePos.x, relativePos.y, zOffset);
+
+        // Tilt tile to follow surface normal (surface rises outward → bowl)
+        const denom2 = (1 - r2) * (1 - r2);
+        const gradMag = K * 4 * Math.sqrt(r2) / denom2;
+        const tiltAngle = Math.atan(gradMag);
+        const r = Math.sqrt(r2);
+        if (r > 0.001) {
+          HyperbolicTiling._tempAxis.set(relativePos.y / r, -relativePos.x / r, 0);
+          HyperbolicTiling._tempQuat.setFromAxisAngle(HyperbolicTiling._tempAxis, tiltAngle);
+          tile.mesh.quaternion.copy(HyperbolicTiling._tempQuat);
+          tile.mesh.rotateZ(tile.rotation);
+        } else {
+          tile.mesh.rotation.set(0, 0, tile.rotation);
+        }
+      } else {
+        tile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
+        tile.mesh.rotation.set(0, 0, tile.rotation);
+      }
 
       // Conformal scale factor: tiles near disk boundary shrink
       const scale = 1 - relativePos.normSquared();
@@ -637,6 +690,11 @@ export class HyperbolicTiling {
       const material = tile.mesh.material as THREE.ShaderMaterial;
       updateHyperbolicMaterial(material, uniformUpdates);
     }
+  }
+
+  /** Set surface curvature mode */
+  setSurfaceMode(mode: 'flat' | 'hyperbolic'): void {
+    this.surfaceMode = mode;
   }
 
   /** Set the maximum tile count for dynamic tiling */
