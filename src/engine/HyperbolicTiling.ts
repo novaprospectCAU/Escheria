@@ -232,9 +232,14 @@ export class HyperbolicTiling {
       mesh = new THREE.Mesh(this.baseTileGeometry, this.sharedMaterial.clone());
     }
 
-    // Set color based on depth using HSL
+    // Set color based on position hash for distinct tile colors
     const material = mesh.material as THREE.ShaderMaterial;
-    const hue = (depth * 0.15) % 1;
+    const posKey = this.getPositionKey(center);
+    let hash = 0;
+    for (let i = 0; i < posKey.length; i++) {
+      hash = ((hash << 5) - hash + posKey.charCodeAt(i)) | 0;
+    }
+    const hue = ((hash & 0x7fffffff) % 360) / 360;
     const color = new THREE.Color();
     color.setHSL(hue, 0.7, 0.5);
     material.uniforms.uBaseColor.value = color;
@@ -263,7 +268,6 @@ export class HyperbolicTiling {
     this.tiles.set(id, tileData);
 
     // Add to spatial index
-    const posKey = this.getPositionKey(center);
     this.tilePositionIndex.set(posKey, tileData);
 
     return tileData;
