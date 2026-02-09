@@ -28,6 +28,9 @@ export class HyperbolicEngine {
   private debugMode: boolean = false;
   private debugType: number = 0;
 
+  // View mode
+  private firstPerson: boolean = true;
+
   constructor(config: EngineConfig) {
     // Get canvas element
     const canvas = typeof config.canvas === 'string'
@@ -116,6 +119,16 @@ export class HyperbolicEngine {
     this.tiling?.setDebugMode(enabled, type);
   }
 
+  /** Set first-person view mode */
+  setFirstPerson(enabled: boolean): void {
+    this.firstPerson = enabled;
+  }
+
+  /** Check if first-person view is active */
+  isFirstPerson(): boolean {
+    return this.firstPerson;
+  }
+
   /** Get tiling for external access (e.g., Poincaré debug) */
   getTiling(): HyperbolicTiling | null {
     return this.tiling;
@@ -164,13 +177,29 @@ export class HyperbolicEngine {
           time: (time - this.startTime) / 1000,
         });
 
-        // Apply yaw rotation to the tiling group (for 2D view rotation)
-        this.tiling.getGroup().rotation.z = -rotation.yaw;
+        // Apply yaw rotation to the tiling group
+        if (this.firstPerson) {
+          this.tiling.getGroup().rotation.z = 0;  // 3D: camera handles rotation
+        } else {
+          this.tiling.getGroup().rotation.z = -rotation.yaw;  // 2D: group rotation
+        }
       }
 
-      // Update Three.js camera - fixed overhead view
-      this.threeCamera.position.set(0, 0, 2);
-      this.threeCamera.lookAt(0, 0, 0);
+      // Update Three.js camera
+      if (this.firstPerson) {
+        const CAMERA_HEIGHT = 0.08;
+        this.threeCamera.position.set(0, 0, CAMERA_HEIGHT);
+        this.threeCamera.up.set(0, 0, 1);  // Z is "up"
+
+        // yaw=0 → forward=(0,+1,0), matching HyperbolicCamera.update() rotation
+        const cy = Math.cos(rotation.yaw), sy = Math.sin(rotation.yaw);
+        const cp = Math.cos(rotation.pitch), sp = Math.sin(rotation.pitch);
+        this.threeCamera.lookAt(-sy * cp, cy * cp, CAMERA_HEIGHT + sp);
+      } else {
+        this.threeCamera.position.set(0, 0, 2);
+        this.threeCamera.up.set(0, 1, 0);
+        this.threeCamera.lookAt(0, 0, 0);
+      }
 
       // Render
       this.renderer.render(this.scene, this.threeCamera);

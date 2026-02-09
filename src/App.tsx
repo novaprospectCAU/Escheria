@@ -30,6 +30,7 @@ function App() {
   const [tilingConfig, setTilingConfig] = useState<TilingConfig>(DEFAULT_TILING);
   const [tilePositions, setTilePositions] = useState<Vec3[]>([]);
   const [engine, setEngine] = useState<HyperbolicEngine | null>(null);
+  const [firstPerson, setFirstPerson] = useState(true);
 
   useEffect(() => {
     // Initialize WASM module
@@ -76,6 +77,10 @@ function App() {
     setDebugMode((prev) => !prev);
   }, []);
 
+  const handleToggleFirstPerson = useCallback(() => {
+    setFirstPerson((prev) => !prev);
+  }, []);
+
   const handleDebugTypeChange = useCallback((type: number) => {
     setDebugType(type);
   }, []);
@@ -91,6 +96,7 @@ function App() {
         debugMode={debugMode}
         debugType={debugType}
         isMobile={mobile}
+        firstPerson={firstPerson}
       />
       <Controls
         tilingConfig={tilingConfig}
@@ -103,6 +109,8 @@ function App() {
         onDebugTypeChange={handleDebugTypeChange}
         showPoincare={showPoincare}
         onTogglePoincare={() => setShowPoincare(!showPoincare)}
+        firstPerson={firstPerson}
+        onToggleFirstPerson={handleToggleFirstPerson}
         isMobile={mobile}
       />
       {showDebug && <DebugOverlay info={debugInfo} />}

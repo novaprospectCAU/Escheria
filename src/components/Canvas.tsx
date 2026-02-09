@@ -15,6 +15,7 @@ interface CanvasProps {
   debugMode?: boolean;
   debugType?: number;
   isMobile?: boolean;
+  firstPerson?: boolean;
 }
 
 export default function Canvas({
@@ -24,6 +25,7 @@ export default function Canvas({
   debugMode = false,
   debugType = 0,
   isMobile = false,
+  firstPerson = true,
 }: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -93,6 +95,13 @@ export default function Canvas({
       engineRef.current.setDebugMode(debugMode, debugType);
     }
   }, [debugMode, debugType]);
+
+  // Update first-person mode
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setFirstPerson(firstPerson);
+    }
+  }, [firstPerson]);
 
   return (
     <div

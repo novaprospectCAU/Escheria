@@ -16,6 +16,8 @@ interface ControlsProps {
   onDebugTypeChange?: (type: number) => void;
   showPoincare?: boolean;
   onTogglePoincare?: () => void;
+  firstPerson?: boolean;
+  onToggleFirstPerson?: () => void;
   isMobile?: boolean;
 }
 
@@ -47,6 +49,8 @@ export default function Controls({
   onDebugTypeChange,
   showPoincare = true,
   onTogglePoincare,
+  firstPerson = true,
+  onToggleFirstPerson,
   isMobile = false,
 }: ControlsProps) {
   const [collapsed, setCollapsed] = useState(isMobile);
@@ -120,6 +124,26 @@ export default function Controls({
           style={{ width: '100%' }}
         />
       </div>
+
+      {onToggleFirstPerson && (
+        <div style={{ marginBottom: '12px' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={firstPerson}
+              onChange={onToggleFirstPerson}
+              style={{ marginRight: '8px' }}
+            />
+            First Person View
+          </label>
+        </div>
+      )}
 
       <div style={{ marginBottom: '12px' }}>
         <label
