@@ -113,9 +113,16 @@ export class HyperbolicTiling {
   // Cached tiling parameters
   private circumradius: number = 0;
   private moveDistance: number = 0;
+  private visibleRadius: number = 0.83;
+
+  // Prism height for 3D tile extrusion
+  private static readonly WALL_HEIGHT = 0.06;
 
   // Mapping: maxDepth → maxTileCount
   private static readonly DEPTH_TO_TILE_COUNT = [0, 100, 200, 300, 500, 700, 1000];
+
+  // Mapping: maxDepth → Euclidean visible radius in Poincaré disk
+  private static readonly DEPTH_TO_VISIBLE_RADIUS = [0, 0.50, 0.65, 0.75, 0.83, 0.88, 0.93];
 
   constructor(config: TilingConfig) {
     this.config = config;
@@ -126,9 +133,11 @@ export class HyperbolicTiling {
     this.circumradius = getTilingCircumradius(p, q);
     this.moveDistance = this.circumradius * 2 * Math.tanh(this.circumradius / 2);
 
-    // Map maxDepth to dynamic tile count
+    // Map maxDepth to dynamic tile count and visible radius
     this.dynamicConfig.maxTileCount =
       HyperbolicTiling.DEPTH_TO_TILE_COUNT[config.maxDepth] ?? 500;
+    this.visibleRadius =
+      HyperbolicTiling.DEPTH_TO_VISIBLE_RADIUS[config.maxDepth] ?? 0.83;
 
     // Allow external override of maxTilesPerFrame (for mobile throttling)
     if (config.maxTilesPerFrame !== undefined) {
@@ -159,7 +168,7 @@ export class HyperbolicTiling {
     return this.group;
   }
 
-  /** Generate the geometry for a single tile */
+  /** Generate the geometry for a single tile (3D prism) */
   private generateBaseTile(): void {
     const { p, q } = this.config;
     const vertices = getPolygonVertices(p, q);
@@ -169,35 +178,60 @@ export class HyperbolicTiling {
       return;
     }
 
-    // Create geometry
+    const H = HyperbolicTiling.WALL_HEIGHT;
     const geometry = new THREE.BufferGeometry();
 
-    // Triangulate the polygon (fan triangulation from center)
     const positions: number[] = [];
     const normals: number[] = [];
     const uvs: number[] = [];
-
-    // Center vertex
-    const center = { x: 0, y: 0, z: 0 };
 
     for (let i = 0; i < p; i++) {
       const v1 = vertices[i];
       const v2 = vertices[(i + 1) % p];
 
-      // Triangle: center, v1, v2
-      positions.push(center.x, center.y, center.z);
-      positions.push(v1.x, v1.y, v1.z);
-      positions.push(v2.x, v2.y, v2.z);
-
-      // Normals (pointing up in z direction)
-      for (let j = 0; j < 3; j++) {
-        normals.push(0, 0, 1);
-      }
-
-      // UVs
+      // === Top face (z = H), normal (0, 0, +1) ===
+      positions.push(0, 0, H);
+      positions.push(v1.x, v1.y, H);
+      positions.push(v2.x, v2.y, H);
+      for (let j = 0; j < 3; j++) normals.push(0, 0, 1);
       uvs.push(0.5, 0.5);
       uvs.push(0.5 + v1.x, 0.5 + v1.y);
       uvs.push(0.5 + v2.x, 0.5 + v2.y);
+
+      // === Bottom face (z = 0), normal (0, 0, -1), reversed winding ===
+      positions.push(0, 0, 0);
+      positions.push(v2.x, v2.y, 0);
+      positions.push(v1.x, v1.y, 0);
+      for (let j = 0; j < 3; j++) normals.push(0, 0, -1);
+      uvs.push(0.5, 0.5);
+      uvs.push(0.5 + v2.x, 0.5 + v2.y);
+      uvs.push(0.5 + v1.x, 0.5 + v1.y);
+
+      // === Side wall (quad as 2 triangles) ===
+      // Outward normal: midpoint of edge normalized to (nx, ny, 0)
+      const mx = (v1.x + v2.x) * 0.5;
+      const my = (v1.y + v2.y) * 0.5;
+      const mLen = Math.sqrt(mx * mx + my * my);
+      const nx = mLen > 0 ? mx / mLen : 0;
+      const ny = mLen > 0 ? my / mLen : 0;
+
+      // Triangle 1: v1_bottom, v2_bottom, v2_top
+      positions.push(v1.x, v1.y, 0);
+      positions.push(v2.x, v2.y, 0);
+      positions.push(v2.x, v2.y, H);
+      for (let j = 0; j < 3; j++) normals.push(nx, ny, 0);
+      uvs.push(0, 0);
+      uvs.push(1, 0);
+      uvs.push(1, 1);
+
+      // Triangle 2: v1_bottom, v2_top, v1_top
+      positions.push(v1.x, v1.y, 0);
+      positions.push(v2.x, v2.y, H);
+      positions.push(v1.x, v1.y, H);
+      for (let j = 0; j < 3; j++) normals.push(nx, ny, 0);
+      uvs.push(0, 0);
+      uvs.push(1, 1);
+      uvs.push(0, 1);
     }
 
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -371,13 +405,14 @@ export class HyperbolicTiling {
   /** Get tiles at the boundary of the visible area */
   private getBoundaryTiles(_cameraPos: Gyrovector): TileData[] {
     const boundary: TileData[] = [];
+    const R = this.visibleRadius;
 
     for (const tile of this.tiles.values()) {
       // Use Euclidean distance (screen space) for consistency
       const euclideanDist = tile.mesh.position.length();
 
       // Tile is in expansion zone (visible but near edge)
-      if (euclideanDist > 0.5 && euclideanDist < 0.85) {
+      if (euclideanDist > R * 0.55 && euclideanDist < R * 0.95) {
         boundary.push(tile);
       }
     }
@@ -386,7 +421,7 @@ export class HyperbolicTiling {
     if (boundary.length === 0) {
       for (const tile of this.tiles.values()) {
         const euclideanDist = tile.mesh.position.length();
-        if (euclideanDist < 0.7) {
+        if (euclideanDist < R * 0.8) {
           boundary.push(tile);
         }
       }
@@ -401,9 +436,8 @@ export class HyperbolicTiling {
     const relativePos = cameraPos.negate().mobiusAdd(pos);
     const euclideanDist = relativePos.norm();
 
-    // Don't create if it would be outside visible area
-    // Use smaller threshold than prune (0.98) to avoid thrashing
-    if (euclideanDist > 0.9) return false;
+    // Don't create if it would be outside visible radius (density-dependent)
+    if (euclideanDist > this.visibleRadius) return false;
 
     // Outside valid disk in absolute coordinates
     if (pos.norm() > 0.98) return false;
@@ -487,8 +521,8 @@ export class HyperbolicTiling {
       // This matches what we use for visibility
       const euclideanDist = tile.mesh.position.length();
 
-      // Remove if outside visible disk (with hysteresis)
-      if (euclideanDist > 0.98) {
+      // Remove if outside visible radius + hysteresis margin
+      if (euclideanDist > this.visibleRadius + 0.08) {
         toRemove.push(tile);
       }
     }
@@ -538,9 +572,9 @@ export class HyperbolicTiling {
       // Hysteresis: separate on/off thresholds to prevent toggling at boundary
       const euclideanDist = relativePos.norm();
       if (tile.mesh.visible) {
-        tile.mesh.visible = euclideanDist < 0.97; // visible → must go further to hide
+        tile.mesh.visible = euclideanDist < this.visibleRadius + 0.04;
       } else {
-        tile.mesh.visible = euclideanDist < 0.93; // hidden → must come closer to show
+        tile.mesh.visible = euclideanDist < this.visibleRadius;
       }
 
       // Update access time for visible tiles

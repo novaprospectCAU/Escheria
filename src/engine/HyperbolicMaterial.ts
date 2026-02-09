@@ -74,7 +74,7 @@ export function createHyperbolicMaterial(
       uDebugType: { value: options.debugType ?? 0 },
       uRenderDistance: { value: DEFAULT_UNIFORMS.renderDistance },
     },
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
     transparent: false,
   });
 

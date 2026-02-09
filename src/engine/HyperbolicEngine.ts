@@ -187,7 +187,7 @@ export class HyperbolicEngine {
 
       // Update Three.js camera
       if (this.firstPerson) {
-        const CAMERA_HEIGHT = 0.08;
+        const CAMERA_HEIGHT = 0.10;
         this.threeCamera.position.set(0, 0, CAMERA_HEIGHT);
         this.threeCamera.up.set(0, 0, 1);  // Z is "up"
 
