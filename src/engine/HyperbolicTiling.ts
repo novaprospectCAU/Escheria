@@ -130,6 +130,11 @@ export class HyperbolicTiling {
     this.dynamicConfig.maxTileCount =
       HyperbolicTiling.DEPTH_TO_TILE_COUNT[config.maxDepth] ?? 500;
 
+    // Allow external override of maxTilesPerFrame (for mobile throttling)
+    if (config.maxTilesPerFrame !== undefined) {
+      this.dynamicConfig.maxTilesPerFrame = config.maxTilesPerFrame;
+    }
+
     // Create shared hyperbolic material
     this.sharedMaterial = createHyperbolicMaterial({
       baseColor: 0x4488ff,

@@ -21,7 +21,10 @@ export class HyperbolicCamera {
   private moveBackward: boolean = false;
   private moveLeft: boolean = false;
   private moveRight: boolean = false;
-  // Note: moveUp/moveDown will be added when implementing 3D movement
+
+  // External input (from touch joystick)
+  private externalMovement = { x: 0, y: 0 };
+  private externalRotationDelta = { yaw: 0, pitch: 0 };
 
   // Movement speed (hyperbolic distance per second)
   private moveSpeed: number = 0.5;
@@ -29,26 +32,34 @@ export class HyperbolicCamera {
   // Mouse state
   private isPointerLocked: boolean = false;
 
+  // Bound handlers for cleanup
+  private boundKeyDown: (e: KeyboardEvent) => void;
+  private boundKeyUp: (e: KeyboardEvent) => void;
+  private boundPointerLockChange: () => void;
+  private boundMouseMove: (e: MouseEvent) => void;
+
   constructor() {
     this.position = new Gyrovector(0, 0, 0);
+
+    this.boundKeyDown = (e) => this.handleKeyDown(e);
+    this.boundKeyUp = (e) => this.handleKeyUp(e);
+    this.boundPointerLockChange = () => {
+      this.isPointerLocked = document.pointerLockElement !== null;
+    };
+    this.boundMouseMove = (e) => {
+      if (this.isPointerLocked) {
+        this.handleMouseMove(e);
+      }
+    };
+
     this.setupInputHandlers();
   }
 
   private setupInputHandlers(): void {
-    // Keyboard controls
-    window.addEventListener('keydown', (e) => this.handleKeyDown(e));
-    window.addEventListener('keyup', (e) => this.handleKeyUp(e));
-
-    // Mouse controls
-    document.addEventListener('pointerlockchange', () => {
-      this.isPointerLocked = document.pointerLockElement !== null;
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (this.isPointerLocked) {
-        this.handleMouseMove(e);
-      }
-    });
+    window.addEventListener('keydown', this.boundKeyDown);
+    window.addEventListener('keyup', this.boundKeyUp);
+    document.addEventListener('pointerlockchange', this.boundPointerLockChange);
+    document.addEventListener('mousemove', this.boundMouseMove);
   }
 
   private handleKeyDown(event: KeyboardEvent): void {
@@ -69,7 +80,6 @@ export class HyperbolicCamera {
       case 'ArrowRight':
         this.moveRight = true;
         break;
-      // Space and Shift reserved for future 3D movement
     }
   }
 
@@ -91,7 +101,6 @@ export class HyperbolicCamera {
       case 'ArrowRight':
         this.moveRight = false;
         break;
-      // Space and Shift reserved for future 3D movement
     }
   }
 
@@ -102,6 +111,18 @@ export class HyperbolicCamera {
 
     // Clamp pitch to prevent flipping
     this.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, this.pitch));
+  }
+
+  /** Set external movement input (from virtual joystick). Values in [-1, 1]. */
+  setExternalMovement(x: number, y: number): void {
+    this.externalMovement.x = x;
+    this.externalMovement.y = y;
+  }
+
+  /** Set external rotation delta (from touch drag). Consumed each frame. */
+  setExternalRotation(yawDelta: number, pitchDelta: number): void {
+    this.externalRotationDelta.yaw += yawDelta;
+    this.externalRotationDelta.pitch += pitchDelta;
   }
 
   /** Request pointer lock for mouse control */
@@ -116,6 +137,15 @@ export class HyperbolicCamera {
 
   /** Update camera position based on input */
   update(deltaTime: number): void {
+    // Apply external rotation delta (consumed each frame)
+    if (this.externalRotationDelta.yaw !== 0 || this.externalRotationDelta.pitch !== 0) {
+      this.yaw += this.externalRotationDelta.yaw;
+      this.pitch += this.externalRotationDelta.pitch;
+      this.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, this.pitch));
+      this.externalRotationDelta.yaw = 0;
+      this.externalRotationDelta.pitch = 0;
+    }
+
     // For 2D top-down view: X is left/right, Y is forward/back
     let dx = 0;
     let dy = 0;
@@ -127,12 +157,18 @@ export class HyperbolicCamera {
     if (this.moveLeft) dx -= 1;
     if (this.moveRight) dx += 1;
 
+    // Add external movement (joystick)
+    dx += this.externalMovement.x;
+    dy += this.externalMovement.y;
+
     // Only move if there's input
     if (dx !== 0 || dy !== 0) {
-      // Normalize
+      // Normalize if magnitude > 1
       const len = Math.sqrt(dx * dx + dy * dy);
-      dx /= len;
-      dy /= len;
+      if (len > 1) {
+        dx /= len;
+        dy /= len;
+      }
 
       // Apply yaw rotation (rotation around Z axis for 2D view)
       const cy = Math.cos(this.yaw);
@@ -189,5 +225,13 @@ export class HyperbolicCamera {
   /** Check if pointer is locked */
   isLocked(): boolean {
     return this.isPointerLocked;
+  }
+
+  /** Remove all event listeners */
+  dispose(): void {
+    window.removeEventListener('keydown', this.boundKeyDown);
+    window.removeEventListener('keyup', this.boundKeyUp);
+    document.removeEventListener('pointerlockchange', this.boundPointerLockChange);
+    document.removeEventListener('mousemove', this.boundMouseMove);
   }
 }

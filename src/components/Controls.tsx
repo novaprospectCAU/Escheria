@@ -2,6 +2,7 @@
  * UI control panel component.
  */
 
+import { useState } from 'react';
 import type { TilingConfig } from '@/types';
 
 interface ControlsProps {
@@ -15,6 +16,7 @@ interface ControlsProps {
   onDebugTypeChange?: (type: number) => void;
   showPoincare?: boolean;
   onTogglePoincare?: () => void;
+  isMobile?: boolean;
 }
 
 // Predefined tiling options
@@ -45,7 +47,10 @@ export default function Controls({
   onDebugTypeChange,
   showPoincare = true,
   onTogglePoincare,
+  isMobile = false,
 }: ControlsProps) {
+  const [collapsed, setCollapsed] = useState(isMobile);
+
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const preset = TILING_PRESETS[parseInt(e.target.value)];
     if (preset) {
@@ -73,23 +78,10 @@ export default function Controls({
     (p) => p.p === tilingConfig.p && p.q === tilingConfig.q
   );
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        background: 'rgba(0, 0, 0, 0.7)',
-        padding: '15px',
-        borderRadius: '8px',
-        color: '#fff',
-        fontFamily: 'monospace',
-        fontSize: '13px',
-        minWidth: '200px',
-      }}
-    >
-      <h3 style={{ margin: '0 0 15px 0', fontSize: '14px' }}>Controls</h3>
+  const maxDepthSlider = isMobile ? 4 : 6;
 
+  const controlsBody = (
+    <>
       <div style={{ marginBottom: '12px' }}>
         <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>
           Tiling Type
@@ -122,7 +114,7 @@ export default function Controls({
         <input
           type="range"
           min="1"
-          max="6"
+          max={maxDepthSlider}
           value={tilingConfig.maxDepth}
           onChange={handleDepthChange}
           style={{ width: '100%' }}
@@ -162,7 +154,7 @@ export default function Controls({
               onChange={onTogglePoincare}
               style={{ marginRight: '8px' }}
             />
-            Show Poincaré Disk
+            Show Poincar&eacute; Disk
           </label>
         </div>
       )}
@@ -233,6 +225,103 @@ export default function Controls({
             : 'Spherical'}
         </div>
       </div>
+    </>
+  );
+
+  // Mobile: collapsible panel
+  if (isMobile) {
+    if (collapsed) {
+      return (
+        <button
+          onClick={() => setCollapsed(false)}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            width: 36,
+            height: 36,
+            background: 'rgba(0,0,0,0.6)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '6px',
+            color: '#fff',
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 200,
+            lineHeight: 1,
+            padding: 0,
+          }}
+          aria-label="Open controls"
+        >
+          <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+            <rect y="0" width="18" height="2" rx="1" fill="#fff" />
+            <rect y="6" width="18" height="2" rx="1" fill="#fff" />
+            <rect y="12" width="18" height="2" rx="1" fill="#fff" />
+          </svg>
+        </button>
+      );
+    }
+
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 260,
+          height: '100%',
+          background: 'rgba(0, 0, 0, 0.85)',
+          padding: '15px',
+          color: '#fff',
+          fontFamily: 'monospace',
+          fontSize: '13px',
+          overflowY: 'auto',
+          zIndex: 200,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h3 style={{ margin: 0, fontSize: '14px' }}>Controls</h3>
+          <button
+            onClick={() => setCollapsed(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '0 4px',
+              lineHeight: 1,
+            }}
+            aria-label="Close controls"
+          >
+            &times;
+          </button>
+        </div>
+        {controlsBody}
+      </div>
+    );
+  }
+
+  // Desktop: always-visible panel
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        background: 'rgba(0, 0, 0, 0.7)',
+        padding: '15px',
+        borderRadius: '8px',
+        color: '#fff',
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        minWidth: '200px',
+      }}
+    >
+      <h3 style={{ margin: '0 0 15px 0', fontSize: '14px' }}>Controls</h3>
+      {controlsBody}
     </div>
   );
 }

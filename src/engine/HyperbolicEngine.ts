@@ -39,12 +39,13 @@ export class HyperbolicEngine {
     }
 
     // Initialize Three.js renderer
+    const mobile = config.mobile ?? false;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: !mobile,
       alpha: false,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.5 : 2));
     this.renderer.setClearColor(0x000000);
 
     // Initialize scene
@@ -205,6 +206,7 @@ export class HyperbolicEngine {
       this.tiling.dispose();
     }
 
+    this.hyperbolicCamera.dispose();
     this.renderer.dispose();
     window.removeEventListener('resize', this.resizeHandler);
   }

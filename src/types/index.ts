@@ -37,6 +37,8 @@ export interface EngineConfig {
   renderDistance?: number;
   /** Enable debug overlay */
   debug?: boolean;
+  /** Mobile mode - disables antialias, caps pixelRatio */
+  mobile?: boolean;
 }
 
 /** Camera state in hyperbolic space */
@@ -57,6 +59,8 @@ export interface TilingConfig {
   q: number;
   /** Maximum depth of tiling generation */
   maxDepth: number;
+  /** Maximum tiles created per frame (for mobile throttling) */
+  maxTilesPerFrame?: number;
 }
 
 /** Debug information displayed in overlay */

@@ -5,13 +5,14 @@ import DebugOverlay from './components/DebugOverlay';
 import PoincareDebug from './components/PoincareDebug';
 import { HyperMath } from './core/wasm/HyperMath';
 import { HyperbolicEngine } from './engine/HyperbolicEngine';
+import { isMobile } from './utils/platform';
 import type { DebugInfo, TilingConfig, Vec3 } from './types';
 
-const DEFAULT_TILING: TilingConfig = {
-  p: 7,  // heptagon
-  q: 3,  // 3 at each vertex
-  maxDepth: 4,
-};
+const mobile = isMobile();
+
+const DEFAULT_TILING: TilingConfig = mobile
+  ? { p: 7, q: 3, maxDepth: 3, maxTilesPerFrame: 3 }
+  : { p: 7, q: 3, maxDepth: 4 };
 
 function App() {
   const [, setWasmLoaded] = useState(false);
@@ -79,6 +80,8 @@ function App() {
     setDebugType(type);
   }, []);
 
+  const poincareSize = mobile ? 80 : 150;
+
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
@@ -87,6 +90,7 @@ function App() {
         onEngineReady={handleEngineReady}
         debugMode={debugMode}
         debugType={debugType}
+        isMobile={mobile}
       />
       <Controls
         tilingConfig={tilingConfig}
@@ -99,13 +103,14 @@ function App() {
         onDebugTypeChange={handleDebugTypeChange}
         showPoincare={showPoincare}
         onTogglePoincare={() => setShowPoincare(!showPoincare)}
+        isMobile={mobile}
       />
       {showDebug && <DebugOverlay info={debugInfo} />}
       {showPoincare && (
         <PoincareDebug
           cameraPosition={debugInfo.position}
           tilePositions={tilePositions}
-          size={150}
+          size={poincareSize}
         />
       )}
     </div>
