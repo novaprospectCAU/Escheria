@@ -28,6 +28,10 @@ export default function VirtualJoystick({ camera }: VirtualJoystickProps) {
 
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
+      // Let UI elements (buttons, inputs, selects) handle their own touches
+      const target = e.target as HTMLElement;
+      if (target.closest('button, input, select, label, [data-controls]')) return;
+
       e.preventDefault();
       const screenMid = window.innerWidth / 2;
 
