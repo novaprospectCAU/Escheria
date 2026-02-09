@@ -30,6 +30,7 @@ export class HyperbolicEngine {
 
   // View mode
   private firstPerson: boolean = true;
+  private surfaceMode: 'flat' | 'hyperbolic' = 'flat';
 
   constructor(config: EngineConfig) {
     // Get canvas element
@@ -100,6 +101,7 @@ export class HyperbolicEngine {
 
     // Apply current debug settings
     this.tiling.setDebugMode(this.debugMode, this.debugType);
+    this.tiling.setSurfaceMode(this.surfaceMode);
   }
 
   /** Set debug callback */
@@ -126,6 +128,7 @@ export class HyperbolicEngine {
 
   /** Set surface curvature mode */
   setSurfaceMode(mode: 'flat' | 'hyperbolic'): void {
+    this.surfaceMode = mode;
     this.tiling?.setSurfaceMode(mode);
   }
 
