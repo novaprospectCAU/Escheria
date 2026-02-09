@@ -66,6 +66,9 @@ export default function VirtualJoystick({ camera }: VirtualJoystickProps) {
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button, input, select, label, [data-controls]')) return;
+
       e.preventDefault();
 
       for (let i = 0; i < e.changedTouches.length; i++) {
