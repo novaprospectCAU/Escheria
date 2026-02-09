@@ -89,10 +89,10 @@ export class HyperbolicTiling {
 
   // Dynamic tiling configuration
   private dynamicConfig: DynamicTilingConfig = {
-    maxVisibleDistance: 5.0,
-    maxTileCount: 800,
-    maxTilesPerFrame: 8,
-    expansionDistance: 4.0,
+    maxVisibleDistance: 6.0,
+    maxTileCount: 1200,
+    maxTilesPerFrame: 12,
+    expansionDistance: 5.0,
   };
 
   // Tile creation throttling
@@ -127,10 +127,10 @@ export class HyperbolicTiling {
   private static readonly WALL_HEIGHT = 0.06;
 
   // Mapping: maxDepth → maxTileCount
-  private static readonly DEPTH_TO_TILE_COUNT = [0, 150, 300, 500, 800, 1200, 1800];
+  private static readonly DEPTH_TO_TILE_COUNT = [0, 200, 400, 700, 1200, 1800, 2500];
 
   // Mapping: maxDepth → Euclidean visible radius in Poincaré disk
-  private static readonly DEPTH_TO_VISIBLE_RADIUS = [0, 0.58, 0.72, 0.82, 0.90, 0.94, 0.97];
+  private static readonly DEPTH_TO_VISIBLE_RADIUS = [0, 0.62, 0.76, 0.86, 0.93, 0.96, 0.98];
 
   constructor(config: TilingConfig) {
     this.config = config;
