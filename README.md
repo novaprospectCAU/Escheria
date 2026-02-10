@@ -2,6 +2,8 @@
 
 > 브라우저에서 쌍곡(Hyperbolic) 공간을 탐험하는 비유클리드 렌더링 엔진
 
+<img width="1262" height="553" alt="image" src="https://github.com/user-attachments/assets/d8d5c100-28c1-4e70-bac7-e2534271b85b" />
+
 *"에셔의 세계로 걸어 들어가다"*
 
 ## Demo
