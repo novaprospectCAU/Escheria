@@ -16,7 +16,7 @@ interface CanvasProps {
   debugType?: number;
   isMobile?: boolean;
   firstPerson?: boolean;
-  surfaceMode?: 'flat' | 'hyperbolic';
+  surfaceMode?: 'flat' | 'hyperbolic' | 'hemisphere';
 }
 
 export default function Canvas({

@@ -18,8 +18,8 @@ interface ControlsProps {
   onTogglePoincare?: () => void;
   firstPerson?: boolean;
   onToggleFirstPerson?: () => void;
-  surfaceMode?: 'flat' | 'hyperbolic';
-  onSurfaceModeChange?: (mode: 'flat' | 'hyperbolic') => void;
+  surfaceMode?: 'flat' | 'hyperbolic' | 'hemisphere';
+  onSurfaceModeChange?: (mode: 'flat' | 'hyperbolic' | 'hemisphere') => void;
   isMobile?: boolean;
 }
 
@@ -156,7 +156,7 @@ export default function Controls({
           </label>
           <select
             value={surfaceMode}
-            onChange={(e) => onSurfaceModeChange(e.target.value as 'flat' | 'hyperbolic')}
+            onChange={(e) => onSurfaceModeChange(e.target.value as 'flat' | 'hyperbolic' | 'hemisphere')}
             style={{
               width: '100%',
               padding: '6px',
@@ -169,6 +169,7 @@ export default function Controls({
           >
             <option value="flat">Flat</option>
             <option value="hyperbolic">Hyperbolic</option>
+            <option value="hemisphere">Hemisphere</option>
           </select>
         </div>
       )}

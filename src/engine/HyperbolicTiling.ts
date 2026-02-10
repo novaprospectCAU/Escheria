@@ -116,7 +116,7 @@ export class HyperbolicTiling {
   private visibleRadius: number = 0.83;
 
   // Surface curvature mode
-  private surfaceMode: 'flat' | 'hyperbolic' = 'flat';
+  private surfaceMode: 'flat' | 'hyperbolic' | 'hemisphere' = 'flat';
   private static readonly CURVATURE_SCALE = 0.04;
 
   // Reusable math objects (GC prevention)
@@ -519,6 +519,22 @@ export class HyperbolicTiling {
                 newTile.mesh.quaternion.copy(HyperbolicTiling._tempQuat);
                 newTile.mesh.rotateZ(newTile.rotation);
               }
+            } else if (this.surfaceMode === 'hemisphere') {
+              const r2 = relativePos.x ** 2 + relativePos.y ** 2;
+              const s = 1 + r2;
+              const hx = 2 * relativePos.x / s;
+              const hy = 2 * relativePos.y / s;
+              const hz = (1 - r2) / s;
+              newTile.mesh.position.set(hx, hy, hz);
+
+              const r = Math.sqrt(r2);
+              if (r > 0.001) {
+                const angle = Math.acos(Math.min(hz, 1));
+                HyperbolicTiling._tempAxis.set(-hy, hx, 0).normalize();
+                HyperbolicTiling._tempQuat.setFromAxisAngle(HyperbolicTiling._tempAxis, angle);
+                newTile.mesh.quaternion.copy(HyperbolicTiling._tempQuat);
+                newTile.mesh.rotateZ(newTile.rotation);
+              }
             } else {
               newTile.mesh.position.set(relativePos.x, relativePos.y, relativePos.z);
             }
@@ -587,13 +603,13 @@ export class HyperbolicTiling {
     const now = performance.now();
 
     // Update tile positions relative to camera and track access time
-    const isHyperbolic = this.surfaceMode === 'hyperbolic';
+    const mode = this.surfaceMode;
     const K = HyperbolicTiling.CURVATURE_SCALE;
 
     for (const tile of this.tiles.values()) {
       const relativePos = camGyro.negate().mobiusAdd(tile.center);
 
-      if (isHyperbolic) {
+      if (mode === 'hyperbolic') {
         const r2 = relativePos.x ** 2 + relativePos.y ** 2;
         const zOffset = K * 2 * r2 / (1 - r2);
         tile.mesh.position.set(relativePos.x, relativePos.y, zOffset);
@@ -606,6 +622,28 @@ export class HyperbolicTiling {
         if (r > 0.001) {
           HyperbolicTiling._tempAxis.set(relativePos.y / r, -relativePos.x / r, 0);
           HyperbolicTiling._tempQuat.setFromAxisAngle(HyperbolicTiling._tempAxis, tiltAngle);
+          tile.mesh.quaternion.copy(HyperbolicTiling._tempQuat);
+          tile.mesh.rotateZ(tile.rotation);
+        } else {
+          tile.mesh.rotation.set(0, 0, tile.rotation);
+        }
+      } else if (mode === 'hemisphere') {
+        // Stereographic projection: Poincaré disk → unit hemisphere
+        const r2 = relativePos.x ** 2 + relativePos.y ** 2;
+        const s = 1 + r2;
+        const hx = 2 * relativePos.x / s;
+        const hy = 2 * relativePos.y / s;
+        const hz = (1 - r2) / s;
+        tile.mesh.position.set(hx, hy, hz);
+
+        // Orient tile tangent to sphere surface
+        // Normal on unit sphere at (hx,hy,hz) = (hx,hy,hz)
+        // Rotate (0,0,1) → (hx,hy,hz)
+        const r = Math.sqrt(r2);
+        if (r > 0.001) {
+          const angle = Math.acos(Math.min(hz, 1));
+          HyperbolicTiling._tempAxis.set(-hy, hx, 0).normalize();
+          HyperbolicTiling._tempQuat.setFromAxisAngle(HyperbolicTiling._tempAxis, angle);
           tile.mesh.quaternion.copy(HyperbolicTiling._tempQuat);
           tile.mesh.rotateZ(tile.rotation);
         } else {
@@ -693,7 +731,7 @@ export class HyperbolicTiling {
   }
 
   /** Set surface curvature mode */
-  setSurfaceMode(mode: 'flat' | 'hyperbolic'): void {
+  setSurfaceMode(mode: 'flat' | 'hyperbolic' | 'hemisphere'): void {
     this.surfaceMode = mode;
   }
 

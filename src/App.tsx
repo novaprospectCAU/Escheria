@@ -31,7 +31,7 @@ function App() {
   const [tilePositions, setTilePositions] = useState<Vec3[]>([]);
   const [engine, setEngine] = useState<HyperbolicEngine | null>(null);
   const [firstPerson, setFirstPerson] = useState(true);
-  const [surfaceMode, setSurfaceMode] = useState<'flat' | 'hyperbolic'>('flat');
+  const [surfaceMode, setSurfaceMode] = useState<'flat' | 'hyperbolic' | 'hemisphere'>('flat');
 
   useEffect(() => {
     // Initialize WASM module
