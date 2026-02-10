@@ -525,7 +525,7 @@ export class HyperbolicTiling {
               const hx = 2 * relativePos.x / s;
               const hy = 2 * relativePos.y / s;
               const hz = (1 - r2) / s;
-              newTile.mesh.position.set(hx, hy, hz);
+              newTile.mesh.position.set(hx, hy, hz - 1);
 
               const r = Math.sqrt(r2);
               if (r > 0.001) {
@@ -629,12 +629,13 @@ export class HyperbolicTiling {
         }
       } else if (mode === 'hemisphere') {
         // Stereographic projection: Poincaré disk → unit hemisphere
+        // Offset by -1 so center tile is at z=0 (camera level)
         const r2 = relativePos.x ** 2 + relativePos.y ** 2;
         const s = 1 + r2;
         const hx = 2 * relativePos.x / s;
         const hy = 2 * relativePos.y / s;
-        const hz = (1 - r2) / s;
-        tile.mesh.position.set(hx, hy, hz);
+        const hz = (1 - r2) / s;  // sphere Z: 1 at center, 0 at boundary
+        tile.mesh.position.set(hx, hy, hz - 1);  // offset: 0 at center, -1 at boundary
 
         // Orient tile tangent to sphere surface
         // Normal on unit sphere at (hx,hy,hz) = (hx,hy,hz)
