@@ -149,7 +149,7 @@ export default function Controls({
         </div>
       )}
 
-      {firstPerson && onSurfaceModeChange && (
+      {onSurfaceModeChange && (
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', marginBottom: '4px', color: '#aaa' }}>
             Surface Mode
